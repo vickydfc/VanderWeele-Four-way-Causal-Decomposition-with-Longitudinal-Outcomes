@@ -1,0 +1,8 @@
+.DS_Store
+.Rhistory
+.RData
+*.out
+*.gh5
+*.dat
+!/synthetic.dat
+data-local/

@@ -1,0 +1,66 @@
+TITLE: Four-way decomposition of a difference in longitudinal slopes
+
+DATA:
+  FILE = synthetic.dat;
+
+VARIABLE:
+  NAMES = id time y a m c;
+  USEVARIABLES = time y a m c am;
+  CLUSTER = id;
+  WITHIN = time;
+  BETWEEN = a m c am;
+
+DEFINE:
+  am = a*m;
+
+ANALYSIS:
+  TYPE = TWOLEVEL RANDOM;
+  ESTIMATOR = BAYES;
+  CHAINS = 2;
+  BSEED = 73491;
+  FBITERATIONS = 4000;
+
+MODEL:
+  %WITHIN%
+    s | y ON time;
+
+  %BETWEEN%
+    [y s];
+    y WITH s;
+    ! Predictors of the person-specific rate of change.
+    s ON a (t1);
+    s ON m (t2);
+    s ON am (t3);
+    s ON c;
+
+    ! One mediator measurement per person, repeated across visit rows.
+    [m] (b0);
+    m ON a (b1);
+    m ON c (bc);
+
+MODEL CONSTRAINT:
+  NEW(a0 a1 mstar cref da m0 dm cde intref intmed pie te);
+  ! Edit these four values to define the target contrast and profile.
+  a0 = -0.5;
+  a1 = 1.0;
+  mstar = -0.5;
+  cref = 0;
+
+  da = a1 - a0;
+  m0 = b0 + b1*a0 + bc*cref;
+  dm = b1*da;
+
+  cde    = (t1 + t3*mstar)*da;
+  intref = t3*(m0 - mstar)*da;
+  intmed = t3*da*dm;
+  pie    = (t2 + t3*a0)*dm;
+  te     = cde + intref + intmed + pie;
+
+OUTPUT:
+  TECH8 CINTERVAL;
+
+PLOT:
+  TYPE = PLOT2;
+
+SAVEDATA:
+  BPARAMETERS = posterior.dat;
